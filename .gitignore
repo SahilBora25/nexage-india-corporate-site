@@ -1,0 +1,51 @@
+# Secrets and local environment configuration
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.p12
+*.pfx
+*.key
+id_rsa*
+id_ed25519*
+credentials.json
+secrets.json
+
+# Python environments, caches, and generated files
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node, frontend build output, and test artifacts
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+.turbo/
+
+# Local uploads, collected assets, databases, and temporary output
+backend/private_media/
+backend/staticfiles/
+private_media/
+*.sqlite3
+*.db
+tmp/
+temp/
+
+# Archives, logs, and operating-system files
+*.zip
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+Desktop.ini

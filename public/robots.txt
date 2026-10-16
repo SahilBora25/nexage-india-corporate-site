@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /backend-admin/
+Disallow: /api/
+Sitemap: https://www.nexageindia.com/sitemap.xml

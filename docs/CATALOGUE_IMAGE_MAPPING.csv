@@ -1,0 +1,127 @@
+﻿collection,title,slug,role,filename,file_exists
+solutions,Industrial Automation,industrial-automation,image,automated-cell.webp,yes
+solutions,Industrial Automation,industrial-automation,detailImage,robotic-cell-inspection.webp,yes
+solutions,Industrial Automation,industrial-automation,introImage,control-cabinet.webp,yes
+solutions,Conveyor & Material Handling,conveyor-material-handling,image,conveyor-transfer.webp,yes
+solutions,Conveyor & Material Handling,conveyor-material-handling,detailImage,roller-conveyor-detail.webp,yes
+solutions,Conveyor & Material Handling,conveyor-material-handling,introImage,conveyor-materials.webp,yes
+solutions,Smart Manufacturing & Industry 4.0,smart-manufacturing,image,industrial-dashboard.webp,yes
+solutions,Smart Manufacturing & Industry 4.0,smart-manufacturing,detailImage,condition-monitoring.webp,yes
+solutions,Smart Manufacturing & Industry 4.0,smart-manufacturing,introImage,plc-monitoring.webp,yes
+solutions,Pick-to-Light & Smart Kitting,pick-to-light,image,pick-to-light.webp,yes
+solutions,Pick-to-Light & Smart Kitting,pick-to-light,detailImage,pick-to-light-rack.webp,yes
+solutions,Jidoka / Poka-Yoke,jidoka-poka-yoke,image,machine-vision.webp,yes
+solutions,Jidoka / Poka-Yoke,jidoka-poka-yoke,detailImage,jidoka-poka-yoke.webp,yes
+solutions,Jidoka / Poka-Yoke,jidoka-poka-yoke,introImage,control-cabinet.webp,yes
+solutions,Special Purpose Machines,special-purpose-machines,image,gantry-machine.webp,yes
+solutions,Special Purpose Machines,special-purpose-machines,detailImage,pressing-machine.webp,yes
+solutions,Special Purpose Machines,special-purpose-machines,introImage,custom-press-cell.webp,yes
+solutions,Engineering & Design,engineering,image,engineering-team-wide.webp,yes
+solutions,Engineering & Design,engineering,detailImage,assembly-line-overview.webp,yes
+solutions,Engineering & Design,engineering,introImage,engineering-design.webp,yes
+solutions,MRO & Industrial Services,mro-services,image,industrial-integration.webp,yes
+solutions,MRO & Industrial Services,mro-services,detailImage,machine-relocation.webp,yes
+solutions,MRO & Industrial Services,mro-services,introImage,hero-factory.webp,yes
+products,NexAge Jidoka System,jidoka,image,jidoka-poka-yoke.webp,yes
+products,NexAge Jidoka System,jidoka,detailImage,electronics-testing.webp,yes
+products,NexAge Jidoka System,jidoka,introImage,control-cabinet.webp,yes
+products,NexAge Wireless TX/RX,wireless-tx-rx,image,wireless-tx-rx.webp,yes
+products,NexAge Wireless TX/RX,wireless-tx-rx,detailImage,electronics-testing.webp,yes
+products,NexAge Wireless TX/RX,wireless-tx-rx,introImage,control-cabinet.webp,yes
+products,NexAge Pick-to-Light System,pick-to-light,image,pick-to-light-rack.webp,yes
+products,NexAge Pick-to-Light System,pick-to-light,detailImage,pick-to-light.webp,yes
+products,Cranes & Hoists,cranes-hoists,image,chain-hoist.webp,yes
+products,Cranes & Hoists,cranes-hoists,detailImage,overhead-crane.webp,yes
+products,Cranes & Hoists,cranes-hoists,introImage,lifting-hardware.webp,yes
+products,Industrial Assembly Tools,industrial-tools,image,tools-product-line.webp,yes
+products,Industrial Assembly Tools,industrial-tools,detailImage,tool-in-use.webp,yes
+products,Industrial Assembly Tools,industrial-tools,introImage,tools-product-detail.webp,yes
+products,Custom Machines,custom-machines,image,custom-press-cell.webp,yes
+products,Custom Machines,custom-machines,detailImage,jig-fixture.webp,yes
+products,Custom Machines,custom-machines,introImage,gantry-machine.webp,yes
+products,Torque Tools,torque-tools,image,tools-product-detail.webp,yes
+products,Torque Tools,torque-tools,detailImage,electric-torque-tool.webp,yes
+products,Torque Tools,torque-tools,introImage,tool-in-use.webp,yes
+products,Battery Tools,battery-tools,image,industrial-tools.webp,yes
+products,Battery Tools,battery-tools,detailImage,tools-product-line.webp,yes
+products,Battery Tools,battery-tools,introImage,electric-torque-tool.webp,yes
+products,Jigs & Fixtures,jigs-fixtures,image,jig-fixture.webp,yes
+products,Jigs & Fixtures,jigs-fixtures,detailImage,precision-manufacturing.webp,yes
+products,Jigs & Fixtures,jigs-fixtures,introImage,custom-press-cell.webp,yes
+products,Material Handling Equipment,material-handling-equipment,image,guided-trolley.webp,yes
+products,Material Handling Equipment,material-handling-equipment,detailImage,conveyor-materials.webp,yes
+products,Material Handling Equipment,material-handling-equipment,introImage,manipulator.webp,yes
+products,Rail Systems,rail-systems,image,lifting-hardware.webp,yes
+products,Rail Systems,rail-systems,detailImage,overhead-crane.webp,yes
+products,Rail Systems,rail-systems,introImage,chain-hoist.webp,yes
+products,Tightening Solutions,tightening-solutions,image,electric-torque-tool.webp,yes
+products,Tightening Solutions,tightening-solutions,detailImage,tool-in-use.webp,yes
+products,Tightening Solutions,tightening-solutions,introImage,tools-product-detail.webp,yes
+projects,Pick-to-Light for Smart Kitting,pick-to-light-kitting,image,pick-to-light.webp,yes
+projects,Pick-to-Light for Smart Kitting,pick-to-light-kitting,detailImage,pick-to-light-rack.webp,yes
+projects,Jidoka / Poka-Yoke Workstation,jidoka-workstation,image,electronics-testing.webp,yes
+projects,Jidoka / Poka-Yoke Workstation,jidoka-workstation,detailImage,control-cabinet.webp,yes
+projects,Jidoka / Poka-Yoke Workstation,jidoka-workstation,introImage,jidoka-poka-yoke.webp,yes
+projects,IoT / PLC Monitoring,iot-plc-monitoring,image,control-cabinet.webp,yes
+projects,IoT / PLC Monitoring,iot-plc-monitoring,detailImage,plc-monitoring.webp,yes
+projects,IoT / PLC Monitoring,iot-plc-monitoring,introImage,industrial-dashboard.webp,yes
+projects,Conveyor & Lift Table Integration,conveyor-lift-table,image,lift-table.webp,yes
+projects,Conveyor & Lift Table Integration,conveyor-lift-table,detailImage,roller-conveyor-detail.webp,yes
+projects,Conveyor & Lift Table Integration,conveyor-lift-table,introImage,conveyor-transfer.webp,yes
+projects,Tightening Machine,tightening-machine,image,tool-in-use.webp,yes
+projects,Tightening Machine,tightening-machine,detailImage,electric-torque-tool.webp,yes
+projects,Tightening Machine,tightening-machine,introImage,tools-product-detail.webp,yes
+projects,Servo Cartesian & SPM,servo-cartesian-spm,image,robotic-cell-inspection.webp,yes
+projects,Servo Cartesian & SPM,servo-cartesian-spm,detailImage,pressing-machine.webp,yes
+projects,Servo Cartesian & SPM,servo-cartesian-spm,introImage,gantry-machine.webp,yes
+projects,Hoist & Rail Installation,hoist-rail-installation,image,overhead-crane.webp,yes
+projects,Hoist & Rail Installation,hoist-rail-installation,detailImage,chain-hoist.webp,yes
+projects,Hoist & Rail Installation,hoist-rail-installation,introImage,lifting-hardware.webp,yes
+projects,Machine Relocation Support,machine-relocation,image,machine-relocation.webp,yes
+projects,Machine Relocation Support,machine-relocation,detailImage,warehouse-fulfillment.webp,yes
+projects,Machine Relocation Support,machine-relocation,introImage,guided-trolley.webp,yes
+projects,Condition Monitoring,condition-monitoring,image,plc-monitoring.webp,yes
+projects,Condition Monitoring,condition-monitoring,detailImage,condition-monitoring.webp,yes
+projects,Condition Monitoring,condition-monitoring,introImage,industrial-dashboard.webp,yes
+projects,Automated Conveyor Systems,automated-conveyor-systems,image,roller-conveyor-detail.webp,yes
+projects,Automated Conveyor Systems,automated-conveyor-systems,detailImage,conveyor-materials.webp,yes
+projects,Automated Conveyor Systems,automated-conveyor-systems,introImage,conveyor-transfer.webp,yes
+projects,Jigs & Fixtures,jigs-fixtures-project,image,precision-manufacturing.webp,yes
+projects,Jigs & Fixtures,jigs-fixtures-project,detailImage,jig-fixture.webp,yes
+projects,Jigs & Fixtures,jigs-fixtures-project,introImage,custom-press-cell.webp,yes
+projects,Sealing & Pressing Solutions,sealing-pressing-solutions,image,pressing-machine.webp,yes
+projects,Sealing & Pressing Solutions,sealing-pressing-solutions,detailImage,gantry-machine.webp,yes
+projects,Sealing & Pressing Solutions,sealing-pressing-solutions,introImage,custom-press-cell.webp,yes
+projects,Machine Refurbishment,machine-refurbishment,image,maintenance-technician.webp,yes
+projects,Machine Refurbishment,machine-refurbishment,detailImage,condition-monitoring.webp,yes
+projects,Machine Refurbishment,machine-refurbishment,introImage,machine-relocation.webp,yes
+projects,Material Handling Systems,material-handling-systems,image,manipulator.webp,yes
+projects,Material Handling Systems,material-handling-systems,detailImage,lifting-hardware.webp,yes
+projects,Material Handling Systems,material-handling-systems,introImage,guided-trolley.webp,yes
+projects,Custom Industrial Solutions,custom-industrial-solutions,image,industrial-integration.webp,yes
+projects,Custom Industrial Solutions,custom-industrial-solutions,detailImage,assembly-line-overview.webp,yes
+projects,Custom Industrial Solutions,custom-industrial-solutions,introImage,engineering-design.webp,yes
+industries,Automotive,automotive,image,automotive-industry.webp,yes
+industries,Manufacturing & Machinery,manufacturing-machinery,image,conveyor-line.webp,yes
+industries,Warehousing & Logistics,warehousing-logistics,image,warehouse-fulfillment.webp,yes
+industries,Assembly & Production,assembly-production,image,assembly-line-overview.webp,yes
+industries,Food & Beverage,food-beverage,image,food-beverage.webp,yes
+industries,Industrial Services,industrial-services,image,hero-factory.webp,yes
+industries,Engineering & Machinery,engineering-machinery,image,engineering-design.webp,yes
+industries,Material Handling,material-handling,image,conveyor-materials.webp,yes
+services,Preventive Maintenance & AMC,,image,condition-monitoring.webp,yes
+services,Installation & Commissioning,,image,commissioning-team.webp,yes
+services,Machinery Relocation,,image,warehouse-logistics.webp,yes
+services,Refurbishment & Troubleshooting,,image,maintenance-technician.webp,yes
+services,Fabrication & Pipeline Jobs,,image,fabrication.webp,yes
+services,Line & Process Integration,,image,industrial-integration.webp,yes
+page-intro,static PageIntro 1,,image,home-about-engineering.webp,yes
+page-intro,static PageIntro 2,,image,smart-banner-background.webp,yes
+page-intro,static PageIntro 3,,image,industrial-integration.webp,yes
+page-intro,static PageIntro 4,,image,cta-factory.webp,yes
+page-intro,static PageIntro 5,,image,cta-background.webp,yes
+page-intro,static PageIntro 6,,image,hero-poster.webp,yes
+page-intro,static PageIntro 7,,image,hero-factory.webp,yes
+page-intro,static PageIntro 8,,image,warehouse-logistics.webp,yes
+page-intro,static PageIntro 9,,image,engineering-team.webp,yes
+page-intro,static PageIntro 10,,image,engineering-team-wide.webp,yes
