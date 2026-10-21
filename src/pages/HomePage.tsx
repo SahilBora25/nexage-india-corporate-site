@@ -129,7 +129,7 @@ export default function HomePage() {
           <span className="eyebrow"><span className="eyebrow-mark" />LEADERSHIP</span>
           <h2>{leadership.name}</h2>
           <p className="leadership-role">{leadership.title}, NexAge India Pvt. Ltd.</p>
-          {leadership.bio.length ? leadership.bio.map(text => <p key={text}>{text}</p>) : <p>Profile details for the Managing Director will be published here.</p>}
+          {leadership.bio.length ? leadership.bio.map(text => <p key={text}>{text}</p>) : <p>Profile details for our Managing Director are coming soon.</p>}
           {leadership.vision ? <blockquote className="leadership-vision">{leadership.vision}</blockquote> : <blockquote className="leadership-vision">The company’s vision is to be a one-stop solution for engineering services and MRO among high-technology and precision manufacturing sectors.</blockquote>}
         </div>
       </div>
