@@ -13,7 +13,7 @@ This repository is a deployable codebase, not a live deployment. Before launch, 
 - Private uploaded-document storage, with downloads restricted to authorized staff.
 - A News & Company Updates feature lets staff publish company news, project updates, achievements, events and technology notes in Django Admin, with direct photo upload and YouTube/Vimeo embeds. Draft and future-dated items remain hidden publicly.
 - Django session authentication with staff-only access to enquiry management. The custom dashboard supports status changes and internal notes; Django Admin provides create/edit/publish management for products, projects, categories, partners, services, awards, industries, media assets and uploaded documents. Public media assets are served only through a published-asset endpoint; quote attachments remain private.
-- Email notification support through environment-configured SMTP. A failed SMTP delivery does not discard an enquiry already stored in the database.
+- Email notifications use environment-configured SMTP. A failed delivery does not discard an enquiry already stored in the database; PII-free errors are written to backend logs for follow-up. Delivery is not automatically retried.
 - PostgreSQL schema/migration, an initial catalogue seed command, basic backend tests, robots/sitemap, Dockerfiles, Nginx and Docker Compose configuration.
 
 ## Routes
@@ -29,20 +29,43 @@ The frontend includes the main routes requested in the brief, including `/soluti
    - `COOKIE_SECURE=false`
    - `SECURE_SSL_REDIRECT=false`
    - `DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,web,backend`
-   - `CSRF_TRUSTED_ORIGINS=`
+   - `CSRF_TRUSTED_ORIGINS=http://localhost:8080`
    - `CORS_ALLOWED_ORIGINS=http://localhost:8080,http://localhost:5173,http://127.0.0.1:5173`
+   - `EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend` (for local runs without sending mail)
    - Replace `POSTGRES_PASSWORD` with a strong local password.
 4. Run `docker compose up --build` from the project root.
 5. In a second terminal, create the initial editable catalogue and a staff login:
 
    ```bash
-   docker compose exec backend python manage.py seed_catalog
+   docker compose --profile maintenance run --rm catalogue-seed
    docker compose exec backend python manage.py createsuperuser
    ```
 
 6. Open `http://localhost:8080`. The custom enquiry dashboard is at `/admin`. Use `/backend-admin/` for the built-in content-management interface.
 
-The seed command is intended to be run once on a new database. It uses `update_or_create`, so if run again it will reset seeded records to the bundled starter copy.
+The catalogue seed procedure is repeatable. It creates missing starter records and preserves existing records and admin edits. Review seeded entries before publishing.
+
+### Database and private-media backups
+
+With the Compose application running, create a uniquely named backup outside the repository:
+
+```bash
+python scripts/backup.py
+```
+
+The script writes a PostgreSQL custom dump and a private-media archive under the current user's local application-data directory. It restricts access to the backup set, records file sizes and SHA-256 checksums, suppresses database command diagnostics, and does not encrypt the files. Store a copy in company-approved encrypted off-host storage. Backups contain enquiry records and potentially sensitive customer attachments.
+
+The database and media archive are captured sequentially, not as one atomic snapshot. Run during a quiet or approved maintenance window if uploads or document deletions could occur while the backup is running.
+
+Exercise a backup in an isolated restore environment:
+
+```bash
+python scripts/restore_test.py "C:\path\to\nexage-backup-set"
+```
+
+The restore test verifies the manifest and checksums, safely extracts private media to a restricted temporary directory, and restores the database into a throwaway PostgreSQL container with no network, no published ports, and a temporary filesystem. It does not connect to the application's database or mount its named volumes. The media extraction limit is 20 GiB by default and can be adjusted with `--max-media-gib`. The required `postgres:16-alpine` image must already be present locally; the script does not pull images. A backup is not considered restore-verified until this command completes successfully against that backup.
+
+The included Nginx configuration replaces incoming `X-Forwarded-For` with the address Nginx observed. If a hosting ingress or load balancer sits in front, confirm its trusted source ranges and configure the real-client-IP handling at that boundary before deployment. Without that provider-specific configuration, throttling remains spoof-resistant but may group visitors under the ingress address. The HTTPS ingress must also overwrite `X-Forwarded-Proto`; the bundled Nginx currently passes that header to Django so secure-request detection depends on the trusted ingress.
 
 For an existing database that already contains your catalogue, do **not** rerun `seed_catalog` just to update image paths. Preview the safe image-path-only sync first, then apply it only after reviewing the listed changes:
 
@@ -81,7 +104,7 @@ When running Vite separately at `http://localhost:5173`, the Vite config proxies
 ## Backend endpoints
 
 - `POST /api/enquiries/contact/` — persists a contact enquiry.
-- `POST /api/enquiries/quote/` — persists a quote request and optional private attachment.
+- `POST /api/enquiries/quote/` — persists a quote request and optional private attachment. The website sends an optional `Idempotency-Key`; retries with the same key and form data return the original response while its 24-hour cache entry is retained.
 - `GET /api/products/`, `/api/projects/`, `/api/services/`, `/api/partners/`, `/api/awards/`, `/api/industries/`, `/api/media/`, `/api/news/` — public published catalogue/media/news data.
 - `GET /api/news/<id>/image/` — serves a news photo only after its update is published and its publication date is reached.
 - `GET /api/media/<id>/file/` — serves a published image asset. Unpublished assets require staff access.
@@ -93,20 +116,21 @@ When running Vite separately at `http://localhost:5173`, the Vite config proxies
 
 - Configure a long random `DJANGO_SECRET_KEY`, unique PostgreSQL password, valid `DJANGO_ALLOWED_HOSTS`, and a real mail provider. Do not commit `.env` files.
 - Set `DJANGO_DEBUG=false`, `COOKIE_SECURE=true`, `SECURE_SSL_REDIRECT=true`, and the HTTPS site in `CSRF_TRUSTED_ORIGINS` / `CORS_ALLOWED_ORIGINS`.
-- Terminate HTTPS at a trusted ingress/load balancer and forward `X-Forwarded-Proto` accurately. The bundled Nginx listens on HTTP and does not itself provision certificates.
+- Terminate HTTPS at a trusted ingress/load balancer and have it overwrite `X-Forwarded-Proto` accurately. The bundled Nginx listens on HTTP and does not itself provision certificates.
 - Verify email delivery from the deployment environment and test form submission, private downloads, session expiry and rate limits.
 - Review all starter catalogue records before publishing. Case-study content intentionally avoids unsupported customer-specific results and performance statistics.
 - Replace the textual partner-name placeholders with authorized official partner-logo assets only if NexAge is permitted to publish them. No imitation partner logos are included.
 - Review legal/privacy copy and add a production privacy notice before collecting real customer data.
-- Enable backups, monitoring, logs, alerting and a documented update/rollback process for the production environment.
+- Schedule `python scripts/backup.py`, move copies to approved encrypted off-host storage, and periodically run `python scripts/restore_test.py` against a selected backup. Keep backup retention and encryption keys under company policy; the script does not encrypt or delete backups.
+- Confirm the hosting provider's trusted proxy CIDRs and configure Nginx real-client-IP handling before relying on per-client throttling behind an ingress.
+- Enable monitoring, logs, alerting and a documented update/rollback process for the production environment.
 
-## Tests
+## Local quality checks
 
-With the backend environment configured and database migrations applied:
+From the repository root in PowerShell, run:
 
-```bash
-cd backend
-python manage.py test core
+```powershell
+.\scripts\quality-check.ps1
 ```
 
-The current environment where this repository was assembled had no network access to the npm registry and no Django installation, so a full package install / end-to-end browser run could not be completed here. Python syntax and TypeScript/JSX syntax were checked; run the install/build/test commands above in a connected environment before going live.
+This runs the frontend TypeScript check and production build, Django system checks and core tests against an in-memory SQLite database, migration consistency, the catalogue/asset audit, source-level keyboard/accessibility guardrails, repository script tests, a Compose configuration-only check when Docker is installed, and `git diff --check`. It does not start containers or connect to a configured PostgreSQL database. Browser keyboard interaction still needs a manual check in a running site.

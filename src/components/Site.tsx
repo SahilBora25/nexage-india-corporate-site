@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowDownRight, ArrowRight, ArrowUpRight, CheckCircle2, ChevronDown, Factory, Menu, Search, ShieldCheck, X } from 'lucide-react';
 import { awards, industries, pageMeta, partners, products, projects, services, solutions } from '../data';
@@ -129,9 +129,47 @@ export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const mobileTriggerRef = useRef<HTMLButtonElement>(null);
+  const mobileNavRef = useRef<HTMLDivElement>(null);
+  const searchWasOpen = useRef(false);
+  const mobileWasOpen = useRef(false);
   const navigate = useNavigate();
   const location = useLocation();
   useEffect(() => { setMobileOpen(false); setOpenMenu(null); setSearchOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    if (searchOpen) {
+      searchWasOpen.current = true;
+      requestAnimationFrame(() => searchInputRef.current?.focus());
+    } else if (searchWasOpen.current) {
+      searchTriggerRef.current?.focus();
+      searchWasOpen.current = false;
+    }
+  }, [searchOpen]);
+  useEffect(() => {
+    if (mobileOpen) {
+      mobileWasOpen.current = true;
+      requestAnimationFrame(() => mobileNavRef.current?.querySelector<HTMLAnchorElement>('a')?.focus());
+    } else if (mobileWasOpen.current) {
+      mobileTriggerRef.current?.focus();
+      mobileWasOpen.current = false;
+    }
+  }, [mobileOpen]);
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (searchOpen) {
+        event.preventDefault();
+        setSearchOpen(false);
+      } else if (mobileOpen) {
+        event.preventDefault();
+        setMobileOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [mobileOpen, searchOpen]);
   const submitSearch = (e: FormEvent) => { e.preventDefault(); const q = query.trim(); if (q) navigate(`/search?q=${encodeURIComponent(q)}`); setSearchOpen(false); };
   return <>
     <a className="skip-link" href="#main-content">Skip to content</a>
@@ -139,23 +177,30 @@ export function SiteHeader() {
       <div className="header-inner wrap">
         <Brand />
         <nav className="desktop-nav" aria-label="Main navigation">
-          {navItems.map(item => item.menu ? <div key={item.label} className="nav-menu-wrap" onMouseEnter={() => setOpenMenu(item.label)} onMouseLeave={() => setOpenMenu(null)}>
-            <NavLink to={item.to} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setOpenMenu(null)}>{item.label}<ChevronDown size={14} strokeWidth={1.8} /></NavLink>
-            {item.label === 'Solutions' && openMenu === 'Solutions' && <div className="mega-menu">
+          {navItems.map(item => item.menu ? <div key={item.label} className="nav-menu-wrap" onMouseEnter={() => setOpenMenu(item.label)} onMouseLeave={() => setOpenMenu(null)} onFocus={() => setOpenMenu(item.label)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpenMenu(null); }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setOpenMenu(null); event.currentTarget.querySelector<HTMLAnchorElement>('.nav-link')?.focus(); } }}>
+            <NavLink to={item.to} aria-expanded={openMenu === item.label} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setOpenMenu(null)}>{item.label}<ChevronDown size={14} strokeWidth={1.8} aria-hidden="true" /></NavLink>
+            {item.label === 'Solutions' && openMenu === 'Solutions' && <div id="solutions-menu" className="mega-menu" role="region" aria-label="Solutions menu">
               <div className="mega-intro"><span className="eyebrow">ENGINEERING CAPABILITIES</span><h3>Solutions built around your process.</h3><Link to="/solutions" className="text-link">Explore all solutions <ArrowRight size={15} /></Link></div>
               <div className="mega-links">{item.menu.map(m => <Link key={m.path} to={m.path}><span>{m.title}</span><ArrowUpRight size={15} /></Link>)}</div>
             </div>}
-            {item.label === 'Products' && openMenu === 'Products' && <div className="mega-menu mega-menu--products">
+            {item.label === 'Products' && openMenu === 'Products' && <div id="products-menu" className="mega-menu mega-menu--products" role="region" aria-label="Products menu">
               <div className="mega-intro"><span className="eyebrow">PRODUCTS & SYSTEMS</span><h3>Designed, integrated and sourced with care.</h3><Link to="/products" className="text-link">Browse products <ArrowRight size={15} /></Link></div>
               <div className="mega-links">{item.menu.map(m => <Link key={m.path} to={m.path}><span>{m.title}</span><ArrowUpRight size={15} /></Link>)}</div>
             </div>}
           </div> : <NavLink key={item.label} to={item.to} end={item.to === '/'} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>{item.label}</NavLink>)}
         </nav>
-        <div className="header-actions"><button className="icon-button" aria-label="Search website" onClick={() => setSearchOpen(true)}><Search size={19} /></button><Link className="button button--yellow button--small quote-top" to="/quote">Request a Quote <ArrowUpRight size={15} /></Link><button className="icon-button mobile-trigger" aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'} onClick={() => setMobileOpen(v => !v)}>{mobileOpen ? <X size={22} /> : <Menu size={22} />}</button></div>
+        <div className="header-actions"><button ref={searchTriggerRef} className="icon-button" aria-label="Search website" aria-haspopup="dialog" aria-expanded={searchOpen} onClick={() => setSearchOpen(true)}><Search size={19} aria-hidden="true" /></button><Link className="button button--yellow button--small quote-top" to="/quote">Request a Quote <ArrowUpRight size={15} /></Link><button ref={mobileTriggerRef} className="icon-button mobile-trigger" aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileOpen} onClick={() => setMobileOpen(v => !v)}>{mobileOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}</button></div>
       </div>
-      {mobileOpen && <div className="mobile-nav"><div className="mobile-nav-inner">{navItems.map(item => <Link key={item.label} to={item.to} onClick={() => setMobileOpen(false)}>{item.label}<ArrowUpRight size={16} /></Link>)}<Link className="button button--yellow" to="/quote" onClick={() => setMobileOpen(false)}>Request a Quote <ArrowUpRight size={16} /></Link><a href="tel:+919219586605" className="mobile-phone">+91 92195 86605</a></div></div>}
+      {mobileOpen && <div ref={mobileNavRef} id="mobile-navigation" className="mobile-nav" role="navigation" aria-label="Mobile navigation"><div className="mobile-nav-inner">{navItems.map(item => <Link key={item.label} to={item.to} onClick={() => setMobileOpen(false)}>{item.label}<ArrowUpRight size={16} aria-hidden="true" /></Link>)}<Link className="button button--yellow" to="/quote" onClick={() => setMobileOpen(false)}>Request a Quote <ArrowUpRight size={16} aria-hidden="true" /></Link><a href="tel:+919219586605" className="mobile-phone">+91 92195 86605</a></div></div>}
     </header>
-    {searchOpen && <div className="search-overlay" role="dialog" aria-modal="true" aria-label="Search NexAge website"><button className="icon-button search-close" onClick={() => setSearchOpen(false)} aria-label="Close search"><X /></button><div className="search-modal wrap"><span className="eyebrow">SEARCH NEXAGE</span><h2>What are you looking for?</h2><form onSubmit={submitSearch} className="search-form"><Search size={21} /><input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Try “Jidoka”, “conveyor” or “MRO”" aria-label="Search products, solutions and projects" /><button type="submit" className="button button--yellow">Search <ArrowRight size={17} /></button></form><p>Search solutions, products, applications, services and industries.</p></div></div>}
+    {searchOpen && <div id="site-search-dialog" className="search-overlay" role="dialog" aria-modal="true" aria-labelledby="site-search-title" onKeyDown={event => {
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) { event.preventDefault(); return; }
+      const first = focusable[0]; const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !event.currentTarget.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && (document.activeElement === last || !event.currentTarget.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+    }}><button className="icon-button search-close" onClick={() => setSearchOpen(false)} aria-label="Close search"><X aria-hidden="true" /></button><div className="search-modal wrap"><span className="eyebrow">SEARCH NEXAGE</span><h2 id="site-search-title">What are you looking for?</h2><form onSubmit={submitSearch} className="search-form"><Search size={21} aria-hidden="true" /><input ref={searchInputRef} value={query} onChange={e => setQuery(e.target.value)} placeholder="Try “Jidoka”, “conveyor” or “MRO”" aria-label="Search products, solutions and projects" /><button type="submit" className="button button--yellow">Search <ArrowRight size={17} aria-hidden="true" /></button></form><p>Search solutions, products, applications, services and industries.</p></div></div>}
   </>;
 }
 
@@ -205,13 +250,17 @@ export function CTABand() {
 
 export function SEO() {
   const location = useLocation();
-  const routeItem = useMemo(() => [...solutions, ...products, ...projects].find(item => item.path === location.pathname), [location.pathname]);
+  const pathname = location.pathname.replace(/\/+$/, '') || '/';
+  const routeItem = useMemo(() => [...solutions, ...products, ...projects].find(item => item.path === pathname), [pathname]);
+  const isAdminRoute = pathname === '/admin';
+  const isNotFound = !isAdminRoute && !pageMeta[pathname] && !routeItem;
   const page = useMemo(() => {
-    if (pageMeta[location.pathname]) return pageMeta[location.pathname];
-    const slug = location.pathname.split('/').filter(Boolean).pop() || 'Industrial Engineering';
+    if (pageMeta[pathname]) return pageMeta[pathname];
+    if (isNotFound) return { title: 'Page not found | NexAge India', description: 'The page you requested could not be found.' };
+    const slug = pathname.split('/').filter(Boolean).pop() || 'Industrial Engineering';
     const label = slug.split('-').map(word => word ? word[0].toUpperCase() + word.slice(1) : '').join(' ');
     return { title: `${label} | NexAge India`, description: `Explore ${label.toLowerCase()} applications, engineering capabilities and integrated industrial solutions from NexAge India Pvt. Ltd.` };
-  }, [location.pathname]);
+  }, [pathname, isNotFound]);
   const previewImage = routeItem?.introImage || routeItem?.detailImage || routeItem?.image || ({
     '/': 'hero-automation-line.webp',
     '/about': 'engineering-team-ai.jpg',
@@ -225,7 +274,7 @@ export function SEO() {
     '/awards': 'warehouse-logistics.webp',
     '/contact': 'engineering-team-ai.jpg',
     '/quote': 'engineering-team-ai.jpg',
-  } as Record<string, string>)[location.pathname] || 'hero-automation-line.webp';
+  } as Record<string, string>)[pathname] || 'hero-automation-line.webp';
   const absolutePreviewImage = `https://www.nexageindia.com${imageUrl(previewImage)}`;
   useEffect(() => {
     document.title = page.title;
@@ -236,18 +285,18 @@ export function SEO() {
     };
     setMeta('name', 'description', page.description);
     const canonical = document.querySelector('link[rel="canonical"]');
-    if (canonical) canonical.setAttribute('href', `https://www.nexageindia.com${location.pathname}`);
+    if (canonical) canonical.setAttribute('href', `https://www.nexageindia.com${pathname}`);
     setMeta('property', 'og:title', page.title);
     setMeta('property', 'og:description', page.description);
-    setMeta('property', 'og:url', `https://www.nexageindia.com${location.pathname}`);
+    setMeta('property', 'og:url', `https://www.nexageindia.com${pathname}`);
     setMeta('property', 'og:image', absolutePreviewImage);
     setMeta('property', 'og:image:alt', page.title);
     setMeta('name', 'twitter:title', page.title);
     setMeta('name', 'twitter:description', page.description);
     setMeta('name', 'twitter:image', absolutePreviewImage);
     setMeta('name', 'twitter:card', 'summary_large_image');
-    setMeta('name', 'robots', location.pathname === '/admin' ? 'noindex,nofollow' : 'index,follow,max-image-preview:large');
+    setMeta('name', 'robots', isAdminRoute || isNotFound ? 'noindex,nofollow' : 'index,follow,max-image-preview:large');
     window.scrollTo(0, 0);
-  }, [location.pathname, page, absolutePreviewImage]);
+  }, [pathname, page, absolutePreviewImage, isAdminRoute, isNotFound]);
   return null;
 }

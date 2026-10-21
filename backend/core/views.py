@@ -1,11 +1,17 @@
 import csv
+import hashlib
+import json
 import logging
 import mimetypes
 import re
 import zipfile
 from pathlib import Path
+from uuid import uuid4
 from django.conf import settings
+from django.core.cache import cache
+from django.core.files.storage import default_storage
 from django.contrib.auth import authenticate, login, logout
+from django.db import transaction
 from django.http import FileResponse, Http404, HttpResponse
 from django.middleware.csrf import get_token, CsrfViewMiddleware
 from django.core.mail import send_mail
@@ -41,17 +47,45 @@ def get_user_ip_hash(request):
     # one-way hashing/salting policy is configured in deployment.
     return ''
 
-def send_enquiry_notifications(subject, body, customer_email=None, customer_name=None):
+def send_enquiry_notifications(subject, body, record_kind, record_id, customer_email=None, customer_name=None):
+    delivery = {'staff_sent': False, 'customer_confirmation_sent': None}
     try:
-        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [settings.SALES_ENQUIRY_EMAIL], fail_silently=False)
-    except Exception:
-        # The enquiry is already committed; mail transport failure must not lose the submission.
-        logger.exception('Unable to send new NexAge website enquiry notification.')
+        sent_count = send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [settings.SALES_ENQUIRY_EMAIL], fail_silently=False)
+        if sent_count != 1:
+            raise RuntimeError('Email backend reported that the staff notification was not sent.')
+    except Exception as exc:
+        # Keep the established API success response because the enquiry is already
+        # saved. Emit a searchable, PII-free event so operations can follow up.
+        logger.error(
+            'staff_enquiry_notification_failed record_kind=%s record_id=%s error_type=%s',
+            record_kind,
+            record_id,
+            type(exc).__name__,
+        )
+    else:
+        delivery['staff_sent'] = True
     if settings.SEND_CUSTOMER_CONFIRMATION and customer_email:
         try:
-            send_mail('We received your enquiry — NexAge India', f'Hello {customer_name or "there"},\n\nThank you for contacting NexAge India. Your enquiry has been received. Our team will contact you shortly.\n\nRegards,\nNexAge India Pvt. Ltd.\nsales@nexageindia.com', settings.DEFAULT_FROM_EMAIL, [customer_email], fail_silently=False)
-        except Exception:
-            logger.exception('Unable to send enquiry confirmation email.')
+            sent_count = send_mail(
+                'We received your enquiry - NexAge India',
+                f'Hello {customer_name or "there"},\n\nThank you for contacting NexAge India. Your enquiry has been received. Our team will contact you shortly.\n\nRegards,\nNexAge India Pvt. Ltd.\n{settings.SALES_ENQUIRY_EMAIL}',
+                settings.DEFAULT_FROM_EMAIL,
+                [customer_email],
+                fail_silently=False,
+            )
+            if sent_count != 1:
+                raise RuntimeError('Email backend reported that the customer confirmation was not sent.')
+        except Exception as exc:
+            logger.error(
+                'customer_confirmation_email_failed record_kind=%s record_id=%s error_type=%s',
+                record_kind,
+                record_id,
+                type(exc).__name__,
+            )
+            delivery['customer_confirmation_sent'] = False
+        else:
+            delivery['customer_confirmation_sent'] = True
+    return delivery
 
 def notification_body(kind, data, request):
     stamp = timezone.localtime(timezone.now()).strftime('%d %b %Y, %I:%M %p %Z')
@@ -143,7 +177,14 @@ class ContactEnquiryCreateView(APIView):
         serializer = ContactEnquirySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         enquiry = serializer.save(ip_hash=get_user_ip_hash(request))
-        send_enquiry_notifications('New NexAge Website Enquiry', notification_body('Contact enquiry', serializer.validated_data, request), enquiry.email, enquiry.name)
+        send_enquiry_notifications(
+            'New NexAge Website Enquiry',
+            notification_body('Contact enquiry', serializer.validated_data, request),
+            'contact',
+            enquiry.pk,
+            enquiry.email,
+            enquiry.name,
+        )
         return Response({'received': True, 'id': enquiry.id, 'message': 'Thank you. Your enquiry has been received. Our team will contact you shortly.'}, status=status.HTTP_201_CREATED)
 
 class QuoteRequestCreateView(APIView):
@@ -159,12 +200,116 @@ class QuoteRequestCreateView(APIView):
             return Response({'detail': upload_error}, status=status.HTTP_400_BAD_REQUEST)
         serializer = QuoteRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        quote = serializer.save(ip_hash=get_user_ip_hash(request))
+
+        idempotency_key = request.headers.get('Idempotency-Key', '').strip()
+        reservation = None
+        cache_key = None
+        if idempotency_key:
+            if not re.fullmatch(r'[A-Za-z0-9._:-]{16,128}', idempotency_key):
+                return Response({'detail': 'The submission key is invalid. Please refresh the form and try again.'}, status=status.HTTP_400_BAD_REQUEST)
+            fingerprint_hash = hashlib.sha256()
+            payload = json.dumps(serializer.validated_data, sort_keys=True, separators=(',', ':'), default=str)
+            fingerprint_hash.update(payload.encode('utf-8'))
+            if upload:
+                for chunk in upload.chunks():
+                    fingerprint_hash.update(chunk)
+                upload.seek(0)
+            fingerprint = fingerprint_hash.hexdigest()
+            cache_key = f'nexage:quote-idempotency:{hashlib.sha256(idempotency_key.encode("ascii")).hexdigest()}'
+            reservation = {'state': 'pending', 'fingerprint': fingerprint, 'owner': uuid4().hex}
+            try:
+                reserved = cache.add(cache_key, reservation, timeout=86400)
+                if not reserved:
+                    prior = cache.get(cache_key)
+                    if isinstance(prior, dict) and prior.get('fingerprint') != fingerprint:
+                        return Response({'detail': 'This submission key was already used for different form data.'}, status=status.HTTP_409_CONFLICT)
+                    if isinstance(prior, dict) and prior.get('state') == 'complete':
+                        return Response(prior['response'], status=prior['status'])
+                    return Response({'detail': 'A request with this key is already being processed. Retry with the same form data.'}, status=status.HTTP_409_CONFLICT)
+            except Exception as exc:
+                logger.error('quote_idempotency_cache_unavailable error_type=%s', type(exc).__name__)
+                return Response({'detail': 'The request could not be safely checked for duplicates. Please retry shortly.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        stored_name = None
+        storage = default_storage
         if upload:
-            # Private storage only; no public media URL is configured.
-            UploadedDocument.objects.create(quote_request=quote, file=upload, original_name=Path(str(upload.name).replace('\\', '/')).name[:255], mime_type=mimetypes.guess_type(upload.name)[0] or upload.content_type or '', size_bytes=upload.size)
-        send_enquiry_notifications('New NexAge Website Enquiry', notification_body('Request for quote', serializer.validated_data, request), quote.email, quote.name)
-        return Response({'received': True, 'id': quote.id, 'message': 'Thank you. Your enquiry has been received. Our team will contact you shortly.'}, status=status.HTTP_201_CREATED)
+            # Store first so a failed storage write cannot leave an enquiry row.
+            # The returned storage name is tracked for cleanup if the DB transaction fails.
+            document = UploadedDocument()
+            storage = document.file.storage
+            original_name = Path(str(upload.name).replace('\\', '/')).name[:255]
+            storage_path = None
+            target_was_absent = False
+            try:
+                storage_path = document.file.field.generate_filename(document, original_name)
+                target_was_absent = not storage.exists(storage_path)
+                if not target_was_absent:
+                    raise FileExistsError('The generated private upload path is already in use.')
+                stored_name = storage.save(storage_path, upload)
+            except Exception as exc:
+                # A storage backend can write a blob and then raise before returning
+                # its final name. The generated UUID path was confirmed absent first.
+                if target_was_absent and storage_path:
+                    try:
+                        if storage.exists(storage_path):
+                            storage.delete(storage_path)
+                    except Exception as cleanup_exc:
+                        logger.error('quote_attachment_cleanup_failed error_type=%s', type(cleanup_exc).__name__)
+                logger.error('quote_attachment_storage_failed error_type=%s', type(exc).__name__)
+                self._release_reservation(cache_key, reservation)
+                return Response({'detail': 'The attachment could not be saved. Please retry the request.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        try:
+            with transaction.atomic():
+                quote = serializer.save(ip_hash=get_user_ip_hash(request))
+                if stored_name:
+                    # The file has already been written to private storage. Saving its
+                    # name creates only the database row and avoids a second storage write.
+                    UploadedDocument.objects.create(
+                        quote_request=quote,
+                        file=stored_name,
+                        original_name=original_name,
+                        mime_type=mimetypes.guess_type(upload.name)[0] or upload.content_type or '',
+                        size_bytes=upload.size,
+                    )
+        except Exception as exc:
+            if stored_name:
+                try:
+                    storage.delete(stored_name)
+                except Exception as cleanup_exc:
+                    logger.error('quote_attachment_cleanup_failed error_type=%s', type(cleanup_exc).__name__)
+            self._release_reservation(cache_key, reservation)
+            logger.error('quote_persistence_failed error_type=%s', type(exc).__name__)
+            return Response({'detail': 'The request could not be saved. Please retry using the same submission.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        response_data = {'received': True, 'id': quote.id, 'message': 'Thank you. Your enquiry has been received. Our team will contact you shortly.'}
+        if cache_key and reservation:
+            try:
+                current = cache.get(cache_key)
+                if isinstance(current, dict) and current.get('owner') == reservation['owner']:
+                    cache.set(cache_key, {'state': 'complete', 'fingerprint': reservation['fingerprint'], 'response': response_data, 'status': status.HTTP_201_CREATED}, timeout=86400)
+            except Exception as exc:
+                logger.error('quote_idempotency_cache_completion_failed error_type=%s', type(exc).__name__)
+        send_enquiry_notifications(
+            'New NexAge Website Enquiry',
+            notification_body('Request for quote', serializer.validated_data, request),
+            'quote',
+            quote.pk,
+            quote.email,
+            quote.name,
+        )
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
+    @staticmethod
+    def _release_reservation(cache_key, reservation):
+        if not cache_key or not reservation:
+            return
+        try:
+            current = cache.get(cache_key)
+            if isinstance(current, dict) and current.get('owner') == reservation['owner']:
+                cache.delete(cache_key)
+        except Exception as exc:
+            logger.error('quote_idempotency_cache_release_failed error_type=%s', type(exc).__name__)
 
 class PublishedModelViewSet(viewsets.ModelViewSet):
     permission_classes = [ReadOnlyOrStaff]

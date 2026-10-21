@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useRef, useState } from 'react';
 import { ArrowRight, ArrowUpRight, Check, ChevronRight, Factory, FileCheck2, MapPin, ShieldCheck, Wrench } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { awards, clientLocations, industries, partners, products, projects, selectedClients, services, solutions, processSteps } from '../data';
@@ -96,7 +96,7 @@ export function AwardsPage() {
 }
 
 export function ContactPage() {
-  return <><PageIntro eyebrow="CONTACT NEXAGE" crumb="Contact" title="Let’s discuss your industrial requirement." text="Tell us about the process, equipment or production challenge you need help with. Our contact details are listed below." image="engineering-team-ai.jpg" /><section className="section contact-layout-section"><div className="wrap contact-layout"><div className="contact-info-col"><span className="eyebrow"><span className="eyebrow-mark" />CONTACT DETAILS</span><h2>Start a conversation with NexAge.</h2><p>For quotations and general enquiries, use the form or contact our team directly.</p><div className="contact-method"><span><MapPin size={19} /></span><div><strong>Office</strong><p>B1/14–21, Metropolis City, Near Radisson Hotel, Rudrapur, Udham Singh Nagar, Uttarakhand – 263153</p></div></div><div className="contact-method"><span><Factory size={19} /></span><div><strong>Works</strong><p>Plot No. 62 D, Sector-4, IIE-SIDCUL, Pantnagar, Uttarakhand – 263153</p></div></div><div className="contact-method"><span><Wrench size={19} /></span><div><strong>Phone</strong><a href="tel:+919219586605">+91-9219586605</a><a href="tel:+919258020512">+91-9258020512</a></div></div><div className="contact-method"><span><ArrowUpRight size={19} /></span><div><strong>Email</strong><a href="mailto:sales@nexageindia.com">sales@nexageindia.com</a><a href="https://www.nexageindia.com">www.nexageindia.com</a></div></div></div><div className="contact-form-holder"><div className="form-card-heading"><span className="eyebrow"><span className="eyebrow-mark" />SEND AN ENQUIRY</span><h2>How can we help?</h2><p>Fill in a few details and the team can follow up.</p></div><ContactFormCompact /></div></div></section><CTABand /></>;
+  return <><PageIntro eyebrow="CONTACT NEXAGE" crumb="Contact" title="Let’s discuss your industrial requirement." text="Tell us about the process, equipment or production challenge you need help with. Our contact details are listed below." image="commissioning-team-ai.jpg" /><section className="section contact-layout-section"><div className="wrap contact-layout"><div className="contact-info-col"><span className="eyebrow"><span className="eyebrow-mark" />CONTACT DETAILS</span><h2>Start a conversation with NexAge.</h2><p>For quotations and general enquiries, use the form or contact our team directly.</p><div className="contact-method"><span><MapPin size={19} /></span><div><strong>Office</strong><p>B1/14–21, Metropolis City, Near Radisson Hotel, Rudrapur, Udham Singh Nagar, Uttarakhand – 263153</p></div></div><div className="contact-method"><span><Factory size={19} /></span><div><strong>Works</strong><p>Plot No. 62 D, Sector-4, IIE-SIDCUL, Pantnagar, Uttarakhand – 263153</p></div></div><div className="contact-method"><span><Wrench size={19} /></span><div><strong>Phone</strong><a href="tel:+919219586605">+91-9219586605</a><a href="tel:+919258020512">+91-9258020512</a></div></div><div className="contact-method"><span><ArrowUpRight size={19} /></span><div><strong>Email</strong><a href="mailto:sales@nexageindia.com">sales@nexageindia.com</a><a href="https://www.nexageindia.com">www.nexageindia.com</a></div></div></div><div className="contact-form-holder"><div className="form-card-heading"><span className="eyebrow"><span className="eyebrow-mark" />SEND AN ENQUIRY</span><h2>How can we help?</h2><p>Fill in a few details and the team can follow up.</p></div><ContactFormCompact /></div></div></section><CTABand /></>;
 }
 
 function ContactFormCompact() {
@@ -127,12 +127,17 @@ function QuoteForm() {
   const [state, setState] = useState<'idle' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const quoteAttempt = useRef<{ fingerprint: string; key: string } | null>(null);
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setBusy(true); setState('idle'); setMessage('');
     const form = e.currentTarget; const file = (form.elements.namedItem('attachment') as HTMLInputElement | null)?.files?.[0];
     if (file && file.size > 10 * 1024 * 1024) { setBusy(false); setState('error'); setMessage('The selected file is larger than 10 MB. Please choose a smaller file.'); return; }
     const data = new FormData(form);
-    try { await submitEnquiry('quote', data); setState('success'); setMessage('Thank you. Your enquiry has been received. Our team will contact you shortly.'); form.reset(); }
+    const fingerprint = JSON.stringify(Array.from(data.entries()).map(([key, value]) => [key, value instanceof File ? { name: value.name, size: value.size, lastModified: value.lastModified } : value]));
+    if (quoteAttempt.current?.fingerprint !== fingerprint) {
+      quoteAttempt.current = { fingerprint, key: window.crypto.randomUUID() };
+    }
+    try { await submitEnquiry('quote', data, quoteAttempt.current.key); quoteAttempt.current = null; setState('success'); setMessage('Thank you. Your enquiry has been received. Our team will contact you shortly.'); form.reset(); }
     catch (err) { setState('error'); setMessage(err instanceof Error ? err.message : 'Unable to submit request. Please try again.'); }
     finally { setBusy(false); }
   };

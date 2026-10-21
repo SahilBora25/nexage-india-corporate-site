@@ -142,19 +142,69 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'],
     'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework.authentication.SessionAuthentication'],
     'DEFAULT_THROTTLE_CLASSES': ['rest_framework.throttling.AnonRateThrottle', 'rest_framework.throttling.UserRateThrottle'],
-    'DEFAULT_THROTTLE_RATES': {'anon': os.getenv('API_ANON_RATE', '120/hour'), 'user': '1200/hour', 'contact': '10/hour', 'quote': '10/hour', 'auth': '10/hour'},
+    # Nginx overwrites X-Forwarded-For with the address it observed. The backend
+    # therefore trusts exactly one proxy hop. If an ingress sits before Nginx,
+    # configure its real client IP range at that edge; do not trust arbitrary XFF.
+    'NUM_PROXIES': 1,
+    'DEFAULT_THROTTLE_RATES': {'anon': os.getenv('API_ANON_RATE', '100/day'), 'user': '1200/hour', 'contact': '10/hour', 'quote': '10/hour', 'auth': '10/hour'},
     'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'] if not DEBUG else ['rest_framework.renderers.JSONRenderer', 'rest_framework.renderers.BrowsableAPIRenderer'],
 }
 
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost' if DEBUG else '').strip()
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'website@nexageindia.com')
-SALES_ENQUIRY_EMAIL = os.getenv('SALES_ENQUIRY_EMAIL', 'sales@nexageindia.com')
+EMAIL_USE_SSL = env_bool('EMAIL_USE_SSL', False)
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '10'))
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'webmaster@localhost' if DEBUG else '').strip()
+SALES_ENQUIRY_EMAIL = os.getenv('SALES_ENQUIRY_EMAIL', 'webmaster@localhost' if DEBUG else '').strip()
 SEND_CUSTOMER_CONFIRMATION = env_bool('SEND_CUSTOMER_CONFIRMATION', False)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'enquiry_notifications_console': {
+            'class': 'logging.StreamHandler',
+            'level': 'ERROR',
+        },
+    },
+    'loggers': {
+        'core.views': {
+            'handlers': ['enquiry_notifications_console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
+
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise RuntimeError('Set only one of EMAIL_USE_TLS or EMAIL_USE_SSL to true.')
+if bool(EMAIL_HOST_USER) != bool(EMAIL_HOST_PASSWORD):
+    raise RuntimeError('Set both EMAIL_HOST_USER and EMAIL_HOST_PASSWORD, or leave both empty for an approved unauthenticated relay.')
+if not DEBUG:
+    if EMAIL_BACKEND != 'django.core.mail.backends.smtp.EmailBackend':
+        raise RuntimeError('Use the SMTP email backend in production.')
+    if not EMAIL_HOST or EMAIL_HOST.lower() in {'localhost', '127.0.0.1'} or EMAIL_HOST.lower().endswith('.example'):
+        raise RuntimeError('Set EMAIL_HOST to the real SMTP host before production startup.')
+    if not 1 <= EMAIL_PORT <= 65535:
+        raise RuntimeError('Set EMAIL_PORT to a valid SMTP port.')
+    for setting_name, email_address in (
+        ('DEFAULT_FROM_EMAIL', DEFAULT_FROM_EMAIL),
+        ('SALES_ENQUIRY_EMAIL', SALES_ENQUIRY_EMAIL),
+    ):
+        email_domain = email_address.rsplit('@', 1)[-1].lower() if '@' in email_address else ''
+        if (
+            not email_address
+            or '@' not in email_address
+            or email_address.lower().endswith('.example')
+            or email_domain in {'example.com', 'example.org', 'example.net', 'example.invalid'}
+            or 'your-' in email_address.lower()
+            or 'replace-' in email_address.lower()
+        ):
+            raise RuntimeError(f'Set {setting_name} to a real approved email address before production startup.')
 
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
@@ -164,7 +214,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 100
 REST_FRAMEWORK = globals().get('REST_FRAMEWORK', {})
 REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {
     **REST_FRAMEWORK.get('DEFAULT_THROTTLE_RATES', {}),
-    'anon': '100/day',
+    'anon': os.getenv('API_ANON_RATE', '100/day'),
     'user': '1000/day',
     'contact': '5/hour',
     'quote': '3/hour',

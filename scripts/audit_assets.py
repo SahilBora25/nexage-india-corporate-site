@@ -3,6 +3,7 @@
 from collections import Counter
 from pathlib import Path
 import ast
+import json
 import re
 import sys
 
@@ -10,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 IMAGE_DIR = ROOT / 'public' / 'images'
 SOURCE_FILES = [
     ROOT / 'src' / 'data.ts',
+    ROOT / 'src' / 'catalogue-images.json',
     ROOT / 'src' / 'components' / 'Site.tsx',
     ROOT / 'src' / 'pages' / 'HomePage.tsx',
     ROOT / 'src' / 'pages' / 'ContentPages.tsx',
@@ -19,6 +21,7 @@ SOURCE_FILES = [
     ROOT / 'index.html',
 ]
 IMAGE_PATTERN = re.compile(r'''["']([^"']+\.(?:webp|png|jpe?g|svg|ico))(?:[?#][^"']*)?["']''', re.I)
+catalogue_image_maps = json.loads((ROOT / 'src' / 'catalogue-images.json').read_text(encoding='utf-8'))
 
 def local_image_path(token: str):
     if token.lower().startswith(('http://', 'https://', 'data:')):
@@ -34,7 +37,13 @@ def local_image_path(token: str):
     return None
 
 def parse_collection(data_source: str, collection: str):
-    match = re.search(r'export const ' + re.escape(collection) + r'(?::[^=]+)?\s*=\s*\[(.*?)\n\];', data_source, flags=re.S)
+    source_name = {
+        'products': 'productDefinitions',
+        'projects': 'projectDefinitions',
+        'industries': 'industryDefinitions',
+        'services': 'serviceDefinitions',
+    }.get(collection, collection)
+    match = re.search(r'(?:export )?const ' + re.escape(source_name) + r'(?::[^=]+)?\s*=\s*\[(.*?)\n\];', data_source, flags=re.S)
     if not match:
         return []
     rows = []
@@ -42,8 +51,10 @@ def parse_collection(data_source: str, collection: str):
         title_match = re.search(r"\btitle:\s*'([^']+)'", obj)
         slug_match = re.search(r"\bslug:\s*'([^']+)'", obj)
         image_match = re.search(r"\bimage:\s*'([^']+)'", obj)
-        if title_match and image_match:
-            rows.append((title_match.group(1), slug_match.group(1) if slug_match else '', image_match.group(1)))
+        slug = slug_match.group(1) if slug_match else ''
+        image = image_match.group(1) if image_match else catalogue_image_maps.get(collection, {}).get(slug)
+        if title_match and image:
+            rows.append((title_match.group(1), slug, image))
     return rows
 
 def parse_sync_maps():
@@ -54,8 +65,17 @@ def parse_sync_maps():
         raise ValueError('IMAGE_MAPS dictionary not found')
     result = {}
     for key, value in zip(assignment.value.keys, assignment.value.values):
-        if isinstance(key, ast.Name) and isinstance(value, ast.Dict):
+        if not isinstance(key, ast.Name):
+            continue
+        if isinstance(value, ast.Dict):
             result[key.id] = ast.literal_eval(value)
+        elif (
+            isinstance(value, ast.Subscript)
+            and isinstance(value.value, ast.Name)
+            and value.value.id == 'CATALOGUE_IMAGE_MAPS'
+            and isinstance(value.slice, ast.Constant)
+        ):
+            result[key.id] = catalogue_image_maps.get(value.slice.value, {})
     return result
 
 missing = []
@@ -95,24 +115,20 @@ print(f'\nStatic top-level PageIntro images checked: {len(intro_names)}; distinc
 if intro_dupes:
     print('Repeated top-level PageIntro assignments: ' + ', '.join(f'{name} ({count})' for name, count in sorted(intro_dupes.items())))
 
-# Build the expected primary-image maps from the static TS catalogue.
+# The shared JSON manifest is the source for all public and database defaults.
 mapping_errors = []
-service_slug_by_title = {
-    'Preventive Maintenance & AMC': 'preventive-maintenance',
-    'Installation & Commissioning': 'installation-commissioning',
-    'Machinery Relocation': 'machinery-relocation',
-    'Refurbishment & Troubleshooting': 'refurbishment-troubleshooting',
-    'Fabrication & Pipeline Jobs': 'fabrication-pipeline',
-    'Line & Process Integration': 'line-process-integration',
-}
-expected_maps = {}
-for collection, model_key in [('products', 'Product'), ('projects', 'Project'), ('industries', 'Industry')]:
-    expected_maps[model_key] = {slug: image for _, slug, image in parse_collection(data_source, collection) if slug}
-expected_maps['Service'] = {
-    service_slug_by_title[title]: image
-    for title, _slug, image in parse_collection(data_source, 'services')
-    if title in service_slug_by_title
-}
+collection_model_keys = {'products': 'Product', 'projects': 'Project', 'services': 'Service', 'industries': 'Industry'}
+expected_maps = {model: catalogue_image_maps[collection] for collection, model in collection_model_keys.items()}
+frontend_code = data_source
+for collection in collection_model_keys:
+    definition = {'products': 'productDefinitions', 'projects': 'projectDefinitions', 'services': 'serviceDefinitions', 'industries': 'industryDefinitions'}[collection]
+    mapping_call = f'withCatalogueImages({definition}, catalogueImages.{collection} as Record<string, string>)'
+    if mapping_call not in frontend_code:
+        mapping_errors.append(f'Frontend {collection} list is not using the shared image manifest.')
+    static_slugs = {slug for _title, slug, _image in parse_collection(data_source, collection) if slug}
+    mapped_slugs = set(expected_maps[collection_model_keys[collection]])
+    if static_slugs != mapped_slugs:
+        mapping_errors.append(f'{collection}: frontend slugs do not match manifest slugs.')
 
 try:
     sync_maps = parse_sync_maps()
@@ -126,7 +142,7 @@ except Exception as exc:
     sync_maps = {}
     mapping_errors.append(f'Unable to audit canonical sync mappings: {exc}')
 
-# Parse seed catalogue row literals and compare their image paths to the same static map.
+# Parse seed slugs and verify each Django collection reads image paths from the manifest.
 def rows_between(source_text, start_marker, end_marker):
     start = source_text.find(start_marker)
     if start < 0:
@@ -136,31 +152,37 @@ def rows_between(source_text, start_marker, end_marker):
         raise ValueError(f'missing seed section end marker: {end_marker}')
     return source_text[start:end]
 
-def seed_rows(block):
-    results = {}
+def seed_slugs(block):
+    results = set()
     for line in block.splitlines():
         line = line.strip()
         if not line.startswith('('):
             continue
         fields = re.findall(r"'([^']*)'", line)
-        image_names = re.findall(r"'([^']+\.(?:webp|png|jpe?g))'", line, flags=re.I)
-        if len(fields) >= 2 and image_names:
-            results[fields[1]] = image_names[-1]
+        if len(fields) >= 2:
+            results.add(fields[1])
     return results
 
 try:
     seed = (ROOT / 'backend' / 'core' / 'management' / 'commands' / 'seed_catalog.py').read_text(encoding='utf-8')
-    seed_expected = {
-        'Product': seed_rows(rows_between(seed, 'product_rows = [', '        for title, slug, cat, desc, owner, image, features in product_rows')),
-        'Project': seed_rows(rows_between(seed, 'project_rows = [', '        for title, slug, cat, desc, image in project_rows')),
-        'Service': seed_rows(rows_between(seed, 'for title, slug, desc, image in [', ']: Service.objects')),
-        'Industry': seed_rows(rows_between(seed, 'for name, slug, desc, image in [', ']: Industry.objects')),
+    backend_dockerfile = (ROOT / 'backend' / 'Dockerfile').read_text(encoding='utf-8')
+    seed_sections = {
+        'Product': ('products', 'product_rows = [', '        for title, slug, cat, desc, owner, features in product_rows', "CATALOGUE_IMAGE_MAPS['products'][slug]"),
+        'Project': ('projects', 'project_rows = [', '        for title, slug, cat, desc in project_rows', "CATALOGUE_IMAGE_MAPS['projects'][slug]"),
+        'Service': ('services', 'for title, slug, desc in [', ']: Service.objects', "CATALOGUE_IMAGE_MAPS['services'][slug]"),
+        'Industry': ('industries', 'for name, slug, desc in [', ']: Industry.objects', "CATALOGUE_IMAGE_MAPS['industries'][slug]"),
     }
-    for model_key, expected in expected_maps.items():
-        for slug, image in expected.items():
-            seeded = seed_expected.get(model_key, {}).get(slug)
-            if seeded != image:
-                mapping_errors.append(f'{model_key}:{slug}: static={image}, seed={seeded or "(missing)"}')
+    for model_key, (collection, start, end, lookup) in seed_sections.items():
+        seeded_slugs = seed_slugs(rows_between(seed, start, end))
+        expected_slugs = set(expected_maps[model_key])
+        if seeded_slugs != expected_slugs:
+            mapping_errors.append(f'{model_key}: seed slugs do not match manifest slugs.')
+        if lookup not in seed:
+            mapping_errors.append(f'{model_key}: seed command is not using the shared image manifest.')
+    if "import catalogueImages from './catalogue-images.json'" not in frontend_code:
+        mapping_errors.append('Frontend catalogue image manifest import is missing.')
+    if 'COPY src/catalogue-images.json /app/src/catalogue-images.json' not in backend_dockerfile:
+        mapping_errors.append('Backend image does not include the shared catalogue image manifest.')
 except Exception as exc:
     mapping_errors.append(f'Unable to audit seed catalogue mappings: {exc}')
 
@@ -169,7 +191,7 @@ if mapping_errors:
     for error in mapping_errors:
         print('  ' + error)
 else:
-    print('Static catalogue primary images match both seed_catalog and sync_catalog_images mappings.')
+    print('Frontend catalogue lists, seed defaults, and sync mappings use the same image manifest.')
 
 # Catalogue primary image collisions are reported separately from detail/intro reuse.
 primary_assignments = []

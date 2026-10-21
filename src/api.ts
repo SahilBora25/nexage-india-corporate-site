@@ -7,9 +7,18 @@ type ApiError = {
   [key: string]: unknown;
 };
 
+async function readApiObject(response: Response): Promise<ApiError | null> {
+  const payload: unknown = await response.json().catch(() => null);
+  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
+    return null;
+  }
+  return payload as ApiError;
+}
+
 export async function submitEnquiry(
   kind: 'contact' | 'quote',
-  data: FormData
+  data: FormData,
+  idempotencyKey?: string
 ) {
   const endpoint =
     kind === 'quote' ? '/enquiries/quote/' : '/enquiries/contact/';
@@ -39,6 +48,7 @@ export async function submitEnquiry(
       headers: {
         Accept: 'application/json',
         'X-CSRFToken': csrfToken,
+        ...(kind === 'quote' && idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
       },
     });
   } catch {
@@ -47,17 +57,23 @@ export async function submitEnquiry(
     );
   }
 
-  const payload = (await response.json().catch(() => ({}))) as ApiError;
+  const payload = await readApiObject(response);
 
   if (!response.ok) {
     const msg =
-      typeof payload.detail === 'string'
+      typeof payload?.detail === 'string'
         ? payload.detail
-        : typeof payload.error === 'string'
+        : typeof payload?.error === 'string'
           ? payload.error
           : 'Your request could not be submitted. Please check the fields and try again.';
 
     throw new Error(msg);
+  }
+
+  if (!payload) {
+    throw new Error(
+      'The enquiry service returned an invalid response. Please try again or email sales@nexageindia.com.'
+    );
   }
 
   return payload;
@@ -82,12 +98,16 @@ export async function apiRequest<T>(
     throw new Error('Cannot connect to the admin API. Check that the backend is running.');
   }
 
-  const payload = await response.json().catch(() => ({}));
+  const payload = await readApiObject(response);
 
   if (!response.ok) {
     throw new Error(
-      (payload as ApiError).detail || 'The request failed.'
+      payload?.detail || 'The request failed.'
     );
+  }
+
+  if (!payload) {
+    throw new Error('The admin service returned an invalid response.');
   }
 
   return payload as T;

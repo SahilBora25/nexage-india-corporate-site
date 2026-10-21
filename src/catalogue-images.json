@@ -1,0 +1,51 @@
+{
+  "products": {
+    "jidoka": "jidoka-poka-yoke-ai.jpg",
+    "wireless-tx-rx": "wireless-tx-rx.webp",
+    "pick-to-light": "pick-to-light-detail.jpg",
+    "cranes-hoists": "chain-hoist.webp",
+    "industrial-tools": "torque-tool-range-ai.jpg",
+    "custom-machines": "custom-press-cell.webp",
+    "torque-tools": "torque-tool-range-ai.jpg",
+    "battery-tools": "industrial-tools.webp",
+    "jigs-fixtures": "jig-fixture-ai.jpg",
+    "material-handling-equipment": "guided-trolley.webp",
+    "rail-systems": "lifting-hardware.webp",
+    "tightening-solutions": "tool-in-use-ai.jpg"
+  },
+  "projects": {
+    "pick-to-light-kitting": "pick-to-light-rack.jpg",
+    "jidoka-workstation": "jidoka-poka-yoke-ai.jpg",
+    "iot-plc-monitoring": "plc-monitoring-ai.jpg",
+    "conveyor-lift-table": "lift-table-ai.jpg",
+    "tightening-machine": "tool-in-use-ai.jpg",
+    "servo-cartesian-spm": "gantry-machine-ai.jpg",
+    "hoist-rail-installation": "overhead-crane.webp",
+    "machine-relocation": "machine-relocation-ai.jpg",
+    "condition-monitoring": "condition-monitoring-ai.jpg",
+    "automated-conveyor-systems": "roller-conveyor-detail.webp",
+    "jigs-fixtures-project": "jig-fixture-ai.jpg",
+    "sealing-pressing-solutions": "pressing-machine.webp",
+    "machine-refurbishment": "maintenance-technician-ai.jpg",
+    "material-handling-systems": "conveyor-transfer.webp",
+    "custom-industrial-solutions": "industrial-integration-ai.jpg"
+  },
+  "industries": {
+    "automotive": "automation-line-ai.jpg",
+    "manufacturing-machinery": "gantry-machine-ai.jpg",
+    "warehousing-logistics": "warehouse-fulfillment.webp",
+    "assembly-production": "assembly-line-overview.webp",
+    "food-beverage": "food-beverage-ai.jpg",
+    "industrial-services": "machine-relocation-ai.jpg",
+    "engineering-machinery": "engineering-design-ai.jpg",
+    "material-handling": "conveyor-materials.webp"
+  },
+  "services": {
+    "preventive-maintenance": "condition-monitoring-ai.jpg",
+    "installation-commissioning": "commissioning-team-ai.jpg",
+    "machinery-relocation": "machine-relocation-ai.jpg",
+    "refurbishment-troubleshooting": "maintenance-technician-ai.jpg",
+    "fabrication-pipeline": "fabrication.webp",
+    "line-process-integration": "industrial-integration-ai.jpg"
+  }
+}
