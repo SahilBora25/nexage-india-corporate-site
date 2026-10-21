@@ -59,18 +59,50 @@ export function AssetImage({ src, alt, className = '', loading = 'lazy' }: { src
   return <img className={className} src={candidates[attempt]} alt={describeImage(src, alt)} loading={loading} decoding="async" onError={() => setAttempt(current => Math.min(current + 1, candidates.length))} />;
 }
 
-const navItems = [
-  { label: 'Home', to: '/' },
-  { label: 'About Us', to: '/about' },
-  { label: 'Solutions', to: '/solutions', menu: solutions.slice(0, 6) },
-  { label: 'Products', to: '/products', menu: products.slice(0, 4) },
-  { label: 'Industries', to: '/industries' },
-  { label: 'Projects', to: '/projects' },
-  { label: 'Partners', to: '/partners' },
-  { label: 'Clients', to: '/clients' },
-  { label: 'Services', to: '/services' },
-  { label: 'Contact', to: '/contact' },
+export const navItems = [
+  { label: 'Home', id: 'top' },
+  { label: 'About', id: 'about' },
+  { label: 'Services', id: 'services' },
+  { label: 'Products', id: 'products' },
+  { label: 'Leadership', id: 'leadership' },
+  { label: 'Clients', id: 'clients' },
+  { label: 'Partners', id: 'partners' },
+  { label: 'Contact', id: 'enquiry' },
 ];
+
+/** Scrolls to a home-page section when already on the home page; otherwise lets the router open /#section. */
+export function sectionLinkProps(pathname: string, id: string, after?: () => void) {
+  return {
+    to: id === 'top' ? '/' : `/#${id}`,
+    onClick: (event: React.MouseEvent) => {
+      after?.();
+      if (pathname !== '/') return;
+      event.preventDefault();
+      if (id === 'top') window.scrollTo({ top: 0, behavior: 'smooth' });
+      else document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+      window.history.replaceState(null, '', id === 'top' ? '/' : `/#${id}`);
+    },
+  };
+}
+
+function useActiveSection(enabled: boolean) {
+  const [active, setActive] = useState('top');
+  useEffect(() => {
+    if (!enabled) return;
+    const ids = navItems.map(item => item.id).filter(id => id !== 'top');
+    const update = () => {
+      const line = window.scrollY + 140;
+      let current = 'top';
+      for (const id of ids) { const el = document.getElementById(id); if (el && el.offsetTop <= line) current = id; }
+      setActive(current);
+    };
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => { window.removeEventListener('scroll', update); window.removeEventListener('resize', update); };
+  }, [enabled]);
+  return active;
+}
 
 const partnerLogoConfig = (name: string): { src: string; theme: string } => {
   const normalized = name.toLowerCase();
@@ -137,6 +169,8 @@ export function SiteHeader() {
   const mobileWasOpen = useRef(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const onHome = location.pathname === '/';
+  const activeSection = useActiveSection(onHome);
   useEffect(() => { setMobileOpen(false); setOpenMenu(null); setSearchOpen(false); }, [location.pathname]);
   useEffect(() => {
     if (searchOpen) {
@@ -177,21 +211,11 @@ export function SiteHeader() {
       <div className="header-inner wrap">
         <Brand />
         <nav className="desktop-nav" aria-label="Main navigation">
-          {navItems.map(item => item.menu ? <div key={item.label} className="nav-menu-wrap" onMouseEnter={() => setOpenMenu(item.label)} onMouseLeave={() => setOpenMenu(null)} onFocus={() => setOpenMenu(item.label)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpenMenu(null); }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setOpenMenu(null); event.currentTarget.querySelector<HTMLAnchorElement>('.nav-link')?.focus(); } }}>
-            <NavLink to={item.to} aria-expanded={openMenu === item.label} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => setOpenMenu(null)}>{item.label}<ChevronDown size={14} strokeWidth={1.8} aria-hidden="true" /></NavLink>
-            {item.label === 'Solutions' && openMenu === 'Solutions' && <div id="solutions-menu" className="mega-menu" role="region" aria-label="Solutions menu">
-              <div className="mega-intro"><span className="eyebrow">ENGINEERING CAPABILITIES</span><h3>Solutions built around your process.</h3><Link to="/solutions" className="text-link">Explore all solutions <ArrowRight size={15} /></Link></div>
-              <div className="mega-links">{item.menu.map(m => <Link key={m.path} to={m.path}><span>{m.title}</span><ArrowUpRight size={15} /></Link>)}</div>
-            </div>}
-            {item.label === 'Products' && openMenu === 'Products' && <div id="products-menu" className="mega-menu mega-menu--products" role="region" aria-label="Products menu">
-              <div className="mega-intro"><span className="eyebrow">PRODUCTS & SYSTEMS</span><h3>Designed, integrated and sourced with care.</h3><Link to="/products" className="text-link">Browse products <ArrowRight size={15} /></Link></div>
-              <div className="mega-links">{item.menu.map(m => <Link key={m.path} to={m.path}><span>{m.title}</span><ArrowUpRight size={15} /></Link>)}</div>
-            </div>}
-          </div> : <NavLink key={item.label} to={item.to} end={item.to === '/'} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>{item.label}</NavLink>)}
+          {navItems.map(item => <Link key={item.id} {...sectionLinkProps(location.pathname, item.id)} className={`nav-link ${onHome && activeSection === item.id ? 'active' : ''}`}>{item.label}</Link>)}
         </nav>
-        <div className="header-actions"><button ref={searchTriggerRef} className="icon-button" aria-label="Search website" aria-haspopup="dialog" aria-expanded={searchOpen} onClick={() => setSearchOpen(true)}><Search size={19} aria-hidden="true" /></button><Link className="button button--yellow button--small quote-top" to="/quote">Request a Quote <ArrowUpRight size={15} /></Link><button ref={mobileTriggerRef} className="icon-button mobile-trigger" aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileOpen} onClick={() => setMobileOpen(v => !v)}>{mobileOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}</button></div>
+        <div className="header-actions"><button ref={searchTriggerRef} className="icon-button" aria-label="Search website" aria-haspopup="dialog" aria-expanded={searchOpen} onClick={() => setSearchOpen(true)}><Search size={19} aria-hidden="true" /></button><Link className="button button--yellow button--small quote-top" {...sectionLinkProps(location.pathname, 'enquiry')}>Request a Quote <ArrowUpRight size={15} /></Link><button ref={mobileTriggerRef} className="icon-button mobile-trigger" aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileOpen} onClick={() => setMobileOpen(v => !v)}>{mobileOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}</button></div>
       </div>
-      {mobileOpen && <div ref={mobileNavRef} id="mobile-navigation" className="mobile-nav" role="navigation" aria-label="Mobile navigation"><div className="mobile-nav-inner">{navItems.map(item => <Link key={item.label} to={item.to} onClick={() => setMobileOpen(false)}>{item.label}<ArrowUpRight size={16} aria-hidden="true" /></Link>)}<Link className="button button--yellow" to="/quote" onClick={() => setMobileOpen(false)}>Request a Quote <ArrowUpRight size={16} aria-hidden="true" /></Link><a href="tel:+919219586605" className="mobile-phone">+91 92195 86605</a></div></div>}
+      {mobileOpen && <div ref={mobileNavRef} id="mobile-navigation" className="mobile-nav" role="navigation" aria-label="Mobile navigation"><div className="mobile-nav-inner">{navItems.map(item => <Link key={item.id} {...sectionLinkProps(location.pathname, item.id, () => setMobileOpen(false))}>{item.label}<ArrowUpRight size={16} aria-hidden="true" /></Link>)}<Link className="button button--yellow" {...sectionLinkProps(location.pathname, 'enquiry', () => setMobileOpen(false))}>Request a Quote <ArrowUpRight size={16} aria-hidden="true" /></Link><a href="tel:+919219586605" className="mobile-phone">+91 92195 86605</a></div></div>}
     </header>
     {searchOpen && <div id="site-search-dialog" className="search-overlay" role="dialog" aria-modal="true" aria-labelledby="site-search-title" onKeyDown={event => {
       if (event.key !== 'Tab') return;
@@ -207,8 +231,8 @@ export function SiteHeader() {
 export function SiteFooter() {
   return <footer className="site-footer"><div className="wrap footer-main">
     <div className="footer-brand-col"><Brand dark /><p>Engineering solutions for modern manufacturing — from automation and material handling to MRO support.</p><div className="footer-tag"><ShieldCheck size={16} /> Engineering Excellence. Safety First.</div></div>
-    <div className="footer-col"><h3>Explore</h3><Link to="/about">About NexAge</Link><Link to="/solutions">Solutions</Link><Link to="/products">Products</Link><Link to="/industries">Industries</Link><Link to="/projects">Projects</Link></div>
-    <div className="footer-col"><h3>Company</h3><Link to="/partners">Partners</Link><Link to="/clients">Clients</Link><Link to="/services">Services</Link><Link to="/awards">Awards & Recognition</Link><Link to="/news">News & Updates</Link><Link to="/contact">Contact</Link><Link to="/quote">Request a Quote</Link><Link to="/privacy">Privacy Notice</Link><Link to="/terms">Terms of Use</Link></div>
+    <div className="footer-col"><h3>Explore</h3><Link to="/#about">About NexAge</Link><Link to="/#services">Services</Link><Link to="/#products">Products</Link><Link to="/#leadership">Leadership</Link></div>
+    <div className="footer-col"><h3>Company</h3><Link to="/#clients">Clients</Link><Link to="/#partners">Partners</Link><Link to="/#enquiry">Contact & Enquiry</Link><Link to="/privacy">Privacy Notice</Link><Link to="/terms">Terms of Use</Link></div>
     <div className="footer-col footer-contact"><h3>Get in touch</h3><strong>Office</strong><p>B1/14–21, Metropolis City,<br />Near Radisson Hotel, Rudrapur,<br />Udham Singh Nagar, Uttarakhand 263153</p><strong>Works</strong><p>Plot No. 62 D, Sector-4,<br />IIE-SIDCUL, Pantnagar,<br />Uttarakhand 263153</p><a href="tel:+919219586605">+91 92195 86605</a><a href="tel:+919258020512">+91 92580 20512</a><a href="mailto:sales@nexageindia.com">sales@nexageindia.com</a></div>
   </div><div className="footer-bottom"><div className="wrap footer-bottom-inner"><span>© {new Date().getFullYear()} NexAge India Pvt. Ltd. All rights reserved.</span><span>Built around engineering. Grounded in safety.</span></div></div></footer>;
 }

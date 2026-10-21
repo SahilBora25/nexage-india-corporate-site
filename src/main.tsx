@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import { AboutPage, AwardsPage, ClientsPage, ContactPage, IndustriesPage, NotFoundPage, PartnersPage, PrivacyPage, ProductDetailPage, ProductsPage, ProjectDetailPage, ProjectsPage, QuotePage, ServicesPage, SolutionDetailPage, SolutionsPage, TermsPage } from './pages/ContentPages';
 import SearchPage from './pages/SearchPage';
@@ -36,22 +36,22 @@ function App() {
   return <BrowserRouter><SEO /><RevealOnScroll /><Routes>
     <Route path="/admin" element={<AdminPage />} />
     <Route path="/" element={<><SiteHeader /><main id="main-content"><HomePage /></main><SiteFooter /></>} />
-    <Route path="/about" element={<><SiteHeader /><main id="main-content"><AboutPage /></main><SiteFooter /></>} />
-    <Route path="/solutions" element={<><SiteHeader /><main id="main-content"><SolutionsPage /></main><SiteFooter /></>} />
+    <Route path="/about" element={<Navigate to="/#about" replace />} />
+    <Route path="/solutions" element={<Navigate to="/#services" replace />} />
     <Route path="/solutions/:slug" element={<><SiteHeader /><main id="main-content"><SolutionDetailPage /></main><SiteFooter /></>} />
-    <Route path="/products" element={<><SiteHeader /><main id="main-content"><ProductsPage /></main><SiteFooter /></>} />
+    <Route path="/products" element={<Navigate to="/#products" replace />} />
     <Route path="/products/:slug" element={<><SiteHeader /><main id="main-content"><ProductDetailPage /></main><SiteFooter /></>} />
-    <Route path="/industries" element={<><SiteHeader /><main id="main-content"><IndustriesPage /></main><SiteFooter /></>} />
-    <Route path="/projects" element={<><SiteHeader /><main id="main-content"><ProjectsPage /></main><SiteFooter /></>} />
+    <Route path="/industries" element={<Navigate to="/#services" replace />} />
+    <Route path="/projects" element={<Navigate to="/#services" replace />} />
     <Route path="/projects/:slug" element={<><SiteHeader /><main id="main-content"><ProjectDetailPage /></main><SiteFooter /></>} />
-    <Route path="/partners" element={<><SiteHeader /><main id="main-content"><PartnersPage /></main><SiteFooter /></>} />
-    <Route path="/clients" element={<><SiteHeader /><main id="main-content"><ClientsPage /></main><SiteFooter /></>} />
-    <Route path="/services" element={<><SiteHeader /><main id="main-content"><ServicesPage /></main><SiteFooter /></>} />
-    <Route path="/awards" element={<><SiteHeader /><main id="main-content"><AwardsPage /></main><SiteFooter /></>} />
-    <Route path="/contact" element={<><SiteHeader /><main id="main-content"><ContactPage /></main><SiteFooter /></>} />
-    <Route path="/quote" element={<><SiteHeader /><main id="main-content"><QuotePage /></main><SiteFooter /></>} />
+    <Route path="/partners" element={<Navigate to="/#partners" replace />} />
+    <Route path="/clients" element={<Navigate to="/#clients" replace />} />
+    <Route path="/services" element={<Navigate to="/#services" replace />} />
+    <Route path="/awards" element={<Navigate to="/#about" replace />} />
+    <Route path="/contact" element={<Navigate to="/#enquiry" replace />} />
+    <Route path="/quote" element={<Navigate to="/#enquiry" replace />} />
     <Route path="/search" element={<><SiteHeader /><main id="main-content"><SearchPage /></main><SiteFooter /></>} />
-    <Route path="/news" element={<><SiteHeader /><main id="main-content"><NewsUpdatesPage /></main><SiteFooter /></>} />
+    <Route path="/news" element={<Navigate to="/#about" replace />} />
     <Route path="/privacy" element={<><SiteHeader /><main id="main-content"><PrivacyPage /></main><SiteFooter /></>} />
     <Route path="/terms" element={<><SiteHeader /><main id="main-content"><TermsPage /></main><SiteFooter /></>} />
     <Route path="*" element={<><SiteHeader /><main id="main-content"><NotFoundPage /></main><SiteFooter /></>} />

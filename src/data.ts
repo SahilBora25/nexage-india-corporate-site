@@ -134,3 +134,12 @@ export const pageMeta: Record<string, { title: string; description: string }> = 
   '/privacy': { title: 'Privacy Notice | NexAge India', description: 'How NexAge India uses information submitted through its contact and quotation forms.' },
   '/terms': { title: 'Terms of Use | NexAge India', description: 'Terms for using the NexAge India website and its public information.' },
 };
+
+/** Managing Director profile. Fill title, bio, vision and photo when approved text and a photograph are available. */
+export const leadership = {
+  name: 'Kulwant Singh Negi',
+  title: 'Managing Director',
+  photo: '',
+  bio: [] as string[],
+  vision: '',
+};
