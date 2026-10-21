@@ -1,9 +1,9 @@
 import { FormEvent, useState } from 'react';
 import { ArrowRight, ArrowUpRight, Check, ChevronRight, Factory, FileCheck2, MapPin, ShieldCheck, Wrench } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { awards, clientLocations, industries, partners, products, projects, services, solutions, processSteps } from '../data';
+import { awards, clientLocations, industries, partners, products, projects, selectedClients, services, solutions, processSteps } from '../data';
 import { submitEnquiry } from '../api';
-import { CTABand, ImageBlock, PageIntro, PartnerLogo, ProductCard, ProjectCard, SectionTitle, SolutionCard } from '../components/Site';
+import { CTABand, ClientLogo, ImageBlock, PageIntro, PartnerLogo, ProductCard, ProjectCard, SectionTitle, SolutionCard } from '../components/Site';
 import { useLiveAwards, useLiveIndustries, useLivePartners, useLiveProducts, useLiveProjects, useLiveServices } from '../hooks/usePublicList';
 
 export function AboutPage() {
@@ -72,7 +72,6 @@ function IndiaClientMap() {
     <div className="india-map-stage" role="img" aria-label="State-labeled map of India with numbered markers for the client locations listed alongside it">
       <img className="india-map-image" src="/images/clients/india-client-map.jpg" alt="" draggable="false" />
       {clientLocations.map((item, index) => <span key={`${item.location}-${item.state}`} className="client-map-marker" style={{ left: `${item.x}%`, top: `${item.y}%` }} aria-hidden="true">{index + 1}</span>)}
-      <img className="client-map-logos" src="/images/clients/client-logo-strip.jpg" alt="Client and partner logos shown in the company profile" />
     </div>
     <div className="client-map-legend"><MapPin size={15} /><span>Numbered markers correspond to the location list.</span></div>
   </div>;
@@ -80,8 +79,8 @@ function IndiaClientMap() {
 
 export function ClientsPage() {
   return <><PageIntro eyebrow="CLIENTS & LOCATIONS" crumb="Clients" title="Industrial relationships across India." text="Explore the client names and locations listed in the NexAge company profile." image="hero-factory.webp" />
-    <section className="section clients-page-section"><div className="wrap"><SectionTitle kicker="CLIENTS & SERVICE LOCATIONS" title="Local presence. Long-term relationships." text="A selection of client names and locations as shown in the supplied company profile." />
-      <div className="client-explorer"><IndiaClientMap /><div className="client-table-card"><div className="client-table-heading"><div><span className="eyebrow"><span className="eyebrow-mark" />LOCATION DIRECTORY</span><h3>Clients by location</h3></div><span>{clientLocations.length} entries</span></div><div className="client-table-scroll"><table className="client-table"><thead><tr><th scope="col">Clients</th><th scope="col">Location</th><th scope="col">State</th></tr></thead><tbody>{clientLocations.map((item, index) => <tr key={`${item.location}-${item.state}`} className="client-location-row"><td><div className="client-names">{item.clients.map(name => <span key={name}>{name}</span>)}</div></td><td><span className="client-location-name"><span>{String(index + 1).padStart(2, '0')}</span>{item.location}</span></td><td>{item.state}</td></tr>)}</tbody></table></div><p className="client-table-note"><ShieldCheck size={16} />Names and locations are reproduced from the supplied company profile.</p></div></div>
+    <section className="section clients-page-section"><div className="wrap"><SectionTitle kicker="CLIENTS & SERVICE LOCATIONS" title="Local presence. Long-term relationships." text="A selection of client names and locations as shown in the supplied company profile." /><div className="partner-logo-row client-logo-grid" role="list" aria-label="Client logos">{selectedClients.map(name => <div className="partner-logo-tile" role="listitem" key={name}><ClientLogo name={name} /></div>)}</div>
+      <div className="client-explorer"><IndiaClientMap /><div className="client-table-card"><div className="client-table-heading"><div><span className="eyebrow"><span className="eyebrow-mark" />LOCATION DIRECTORY</span><h3>Clients by location</h3></div><span>{clientLocations.length} entries</span></div><span className="client-table-scroll-hint">Swipe horizontally to see all columns</span><div className="client-table-scroll" role="region" aria-label="Client locations table" tabIndex={0}><table className="client-table"><thead><tr><th scope="col">Clients</th><th scope="col">Location</th><th scope="col">State</th></tr></thead><tbody>{clientLocations.map((item, index) => <tr key={`${item.location}-${item.state}`} className="client-location-row"><td><div className="client-names">{item.clients.map(name => <span key={name}>{name}</span>)}</div></td><td><span className="client-location-name"><span>{String(index + 1).padStart(2, '0')}</span>{item.location}</span></td><td>{item.state}</td></tr>)}</tbody></table></div><p className="client-table-note"><ShieldCheck size={16} />Names and locations are reproduced from the supplied company profile.</p></div></div>
     </div></section><CTABand />
   </>;
 }

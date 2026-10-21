@@ -2,7 +2,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Cpu, Layers3, Settings2, Sh
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { partners, selectedClients, solutions } from '../data';
-import { CTABand, ImageBlock, PartnerLogo, ProductCard, ProjectCard, SectionTitle, SolutionCard } from '../components/Site';
+import { CTABand, ClientLogo, ImageBlock, PartnerLogo, ProductCard, ProjectCard, SectionTitle, SolutionCard } from '../components/Site';
 import { useLiveAwards, useLiveIndustries, useLivePartners, useLiveProducts, useLiveProjects } from '../hooks/usePublicList';
 import { LatestNewsSection } from './NewsUpdatesPage';
 
@@ -54,7 +54,7 @@ export default function HomePage() {
       <div className="hero-slider-controls" aria-label="Industrial photography slides">
         <button type="button" className="hero-slider-arrow" aria-label="Previous slide" onClick={() => setSlide(index => (index - 1 + heroSlides.length) % heroSlides.length)}><ArrowLeft size={18} /></button>
         <div className="hero-slider-dots">{heroSlides.map((item, index) => <button type="button" key={item.src} aria-label={`Show slide ${index + 1}: ${item.label}`} aria-pressed={slide === index} className={slide === index ? 'active' : ''} onClick={() => setSlide(index)} />)}</div>
-        <span className="hero-slide-label" aria-live="polite">{heroSlides[slide].label}<small>Illustrative concept image</small></span>
+        <span className="hero-slide-label" aria-live="polite">{heroSlides[slide].label}</span>
         <button type="button" className="hero-slider-arrow" aria-label="Next slide" onClick={() => setSlide(index => (index + 1) % heroSlides.length)}><ArrowRight size={18} /></button>
       </div>
     </section>
@@ -144,7 +144,7 @@ export default function HomePage() {
     <section className="home-clients-band">
       <div className="wrap home-clients-inner">
         <div className="home-clients-copy"><span className="eyebrow"><span className="eyebrow-mark" />CLIENTS & LOCATIONS</span><h2>Industrial relationships across India.</h2><p>See the client names and locations listed in the NexAge company profile.</p><Link className="text-link" to="/clients">Explore Clients <ArrowRight size={16} /></Link></div>
-        <div className="home-client-names" aria-label="Selected client names">{selectedClients.map(name => <span key={name}>{name}</span>)}</div>
+        <div className="partner-logo-row home-client-logo-grid" role="list" aria-label="Selected client logos">{selectedClients.map(name => <div className="partner-logo-tile" role="listitem" key={name}><ClientLogo name={name} /></div>)}</div>
       </div>
     </section>
 

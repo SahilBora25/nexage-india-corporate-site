@@ -74,16 +74,16 @@ export const awards = [
 ];
 
 export const clientLocations = [
-  { clients: ['Tata Motors', 'Ashok Leyland', 'Titan', 'Henkel', 'Nestlé'], location: 'Pantnagar', state: 'Uttarakhand', x: 46, y: 27 },
-  { clients: ['Tata Motors', 'Ashok Leyland'], location: 'Lucknow', state: 'Uttar Pradesh', x: 52, y: 38 },
-  { clients: ['Tata Motors'], location: 'Jamshedpur', state: 'Jharkhand', x: 68, y: 49 },
-  { clients: ['Denso', 'Honda'], location: 'IMT Manesar', state: 'Haryana', x: 35, y: 29 },
-  { clients: ['Honda'], location: 'Tapukheda / Neemrana', state: 'Rajasthan', x: 33, y: 35 },
-  { clients: ['Tata Motors'], location: 'Pune', state: 'Maharashtra', x: 30, y: 67 },
-  { clients: ['Tata Motors'], location: 'Sanand', state: 'Gujarat', x: 19, y: 49 },
-  { clients: ['Kubota'], location: 'Faridabad', state: 'Haryana', x: 42, y: 33 },
-  { clients: ['Mahindra & Mahindra Ltd.'], location: 'Mohali', state: 'Punjab', x: 31, y: 22 },
-  { clients: ['Mahindra & Mahindra Ltd.'], location: 'Lalpur', state: 'Uttarakhand', x: 51, y: 31 },
+  { clients: ['Tata Motors', 'Ashok Leyland', 'Titan', 'Henkel', 'Nestlé'], location: 'Pantnagar', state: 'Uttarakhand', x: 39, y: 26 },
+  { clients: ['Tata Motors', 'Ashok Leyland'], location: 'Lucknow', state: 'Uttar Pradesh', x: 44, y: 35 },
+  { clients: ['Tata Motors'], location: 'Jamshedpur', state: 'Jharkhand', x: 62, y: 49 },
+  { clients: ['Denso', 'Honda'], location: 'IMT Manesar', state: 'Haryana', x: 31, y: 28 },
+  { clients: ['Honda'], location: 'Tapukheda / Neemrana', state: 'Rajasthan', x: 25, y: 34 },
+  { clients: ['Tata Motors'], location: 'Pune', state: 'Maharashtra', x: 20, y: 64 },
+  { clients: ['Tata Motors'], location: 'Sanand', state: 'Gujarat', x: 15, y: 48 },
+  { clients: ['Kubota'], location: 'Faridabad', state: 'Haryana', x: 37, y: 34 },
+  { clients: ['Mahindra & Mahindra Ltd.'], location: 'Mohali', state: 'Punjab', x: 30, y: 22 },
+  { clients: ['Mahindra & Mahindra Ltd.'], location: 'Lalpur', state: 'Uttarakhand', x: 44, y: 30 },
 ];
 export const selectedClients = [...new Set(clientLocations.flatMap(({ clients }) => clients))];
 export const locations = [...new Set(clientLocations.map(({ location }) => location))];

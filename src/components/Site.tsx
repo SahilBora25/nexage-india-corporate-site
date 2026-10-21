@@ -92,6 +92,30 @@ export function PartnerLogo({ name }: { name: string }) {
   </div>;
 }
 
+const clientLogoConfig = (name: string): { src: string; theme: string } => {
+  const normalized = name.toLowerCase();
+  if (normalized.includes('tata motors')) return { src: 'https://commons.wikimedia.org/wiki/Special:FilePath/Tata_Motors_Logo.svg', theme: 'tata' };
+  if (normalized.includes('ashok leyland')) return { src: 'https://commons.wikimedia.org/wiki/Special:FilePath/Ashok_Leyland_Logo.JPG?width=280', theme: 'ashok-leyland' };
+  if (normalized.includes('titan')) return { src: 'https://commons.wikimedia.org/wiki/Special:FilePath/Titan_Company_Logo.png?width=180', theme: 'titan' };
+  if (normalized.includes('henkel')) return { src: 'https://commons.wikimedia.org/wiki/Special:FilePath/Henkel-Logo.svg', theme: 'henkel' };
+  if (normalized.includes('nestl')) return { src: 'https://commons.wikimedia.org/wiki/Special:FilePath/Nestle_textlogo_blue.svg', theme: 'nestle' };
+  if (normalized.includes('denso')) return { src: 'https://commons.wikimedia.org/wiki/Special:FilePath/Denso.svg', theme: 'denso' };
+  if (normalized.includes('honda')) return { src: 'https://commons.wikimedia.org/wiki/Special:FilePath/Honda_logo.svg', theme: 'honda' };
+  if (normalized.includes('kubota')) return { src: 'https://commons.wikimedia.org/wiki/Special:FilePath/Kubota_Logo.svg', theme: 'kubota' };
+  if (normalized.includes('mahindra')) return { src: 'https://commons.wikimedia.org/wiki/Special:FilePath/Mahindra_Rise_New_Logo.svg', theme: 'mahindra' };
+  return { src: '', theme: 'text' };
+};
+
+export function ClientLogo({ name }: { name: string }) {
+  const logo = clientLogoConfig(name);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { setFailed(false); }, [logo.src]);
+  const showAsset = Boolean(logo.src) && !failed;
+  return <div className={`partner-logo-art partner-logo-art--client partner-logo-art--client-${logo.theme}`} role="img" aria-label={`${name} client logo`}>
+    {showAsset ? <img src={logo.src} alt={`${name} logo`} loading="lazy" decoding="async" onError={() => setFailed(true)} /> : <strong>{name}</strong>}
+  </div>;
+}
+
 export function Brand({ dark = false }: { dark?: boolean }) {
   const [logoStage, setLogoStage] = useState(0);
   const logoPath = logoStage === 0 ? '/images/nexage-logo.jpg' : '/images/nexage-mark.webp';
@@ -181,29 +205,49 @@ export function CTABand() {
 
 export function SEO() {
   const location = useLocation();
+  const routeItem = useMemo(() => [...solutions, ...products, ...projects].find(item => item.path === location.pathname), [location.pathname]);
   const page = useMemo(() => {
     if (pageMeta[location.pathname]) return pageMeta[location.pathname];
     const slug = location.pathname.split('/').filter(Boolean).pop() || 'Industrial Engineering';
     const label = slug.split('-').map(word => word ? word[0].toUpperCase() + word.slice(1) : '').join(' ');
     return { title: `${label} | NexAge India`, description: `Explore ${label.toLowerCase()} applications, engineering capabilities and integrated industrial solutions from NexAge India Pvt. Ltd.` };
   }, [location.pathname]);
+  const previewImage = routeItem?.introImage || routeItem?.detailImage || routeItem?.image || ({
+    '/': 'hero-automation-line.webp',
+    '/about': 'engineering-team-ai.jpg',
+    '/solutions': 'industrial-dashboard-ai.jpg',
+    '/products': 'torque-tool-range-ai.jpg',
+    '/industries': 'food-beverage-ai.jpg',
+    '/projects': 'pick-to-light-rack.jpg',
+    '/partners': 'partners/kito-crosby.png',
+    '/clients': 'clients/india-client-map.jpg',
+    '/services': 'maintenance-technician-ai.jpg',
+    '/awards': 'warehouse-logistics.webp',
+    '/contact': 'engineering-team-ai.jpg',
+    '/quote': 'engineering-team-ai.jpg',
+  } as Record<string, string>)[location.pathname] || 'hero-automation-line.webp';
+  const absolutePreviewImage = `https://www.nexageindia.com${imageUrl(previewImage)}`;
   useEffect(() => {
     document.title = page.title;
-    let meta = document.querySelector('meta[name="description"]');
-    if (!meta) { meta = document.createElement('meta'); meta.setAttribute('name', 'description'); document.head.appendChild(meta); }
-    meta.setAttribute('content', page.description);
+    const setMeta = (kind: 'name' | 'property', key: string, content: string) => {
+      let meta = document.querySelector<HTMLMetaElement>(`meta[${kind}="${key}"]`);
+      if (!meta) { meta = document.createElement('meta'); meta.setAttribute(kind, key); document.head.appendChild(meta); }
+      meta.setAttribute('content', content);
+    };
+    setMeta('name', 'description', page.description);
     const canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) canonical.setAttribute('href', `https://www.nexageindia.com${location.pathname}`);
-    const ogTitle = document.querySelector('meta[property="og:title"]');
-    if (ogTitle) ogTitle.setAttribute('content', page.title);
-    const ogDescription = document.querySelector('meta[property="og:description"]');
-    if (ogDescription) ogDescription.setAttribute('content', page.description);
-    const ogUrl = document.querySelector('meta[property="og:url"]');
-    if (ogUrl) ogUrl.setAttribute('content', `https://www.nexageindia.com${location.pathname}`);
-    let robots = document.querySelector('meta[name="robots"]');
-    if (!robots) { robots = document.createElement('meta'); robots.setAttribute('name', 'robots'); document.head.appendChild(robots); }
-    robots.setAttribute('content', location.pathname === '/admin' ? 'noindex,nofollow' : 'index,follow,max-image-preview:large');
+    setMeta('property', 'og:title', page.title);
+    setMeta('property', 'og:description', page.description);
+    setMeta('property', 'og:url', `https://www.nexageindia.com${location.pathname}`);
+    setMeta('property', 'og:image', absolutePreviewImage);
+    setMeta('property', 'og:image:alt', page.title);
+    setMeta('name', 'twitter:title', page.title);
+    setMeta('name', 'twitter:description', page.description);
+    setMeta('name', 'twitter:image', absolutePreviewImage);
+    setMeta('name', 'twitter:card', 'summary_large_image');
+    setMeta('name', 'robots', location.pathname === '/admin' ? 'noindex,nofollow' : 'index,follow,max-image-preview:large');
     window.scrollTo(0, 0);
-  }, [location.pathname, page]);
+  }, [location.pathname, page, absolutePreviewImage]);
   return null;
 }
