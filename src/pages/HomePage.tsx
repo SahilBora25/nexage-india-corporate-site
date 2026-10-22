@@ -41,7 +41,7 @@ export default function HomePage() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const interval = window.setInterval(() => {
       setSlide(index => (index + 1) % heroSlides.length);
-    }, 5000);
+    }, 3000);
     return () => window.clearInterval(interval);
   }, []);
 
