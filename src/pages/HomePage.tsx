@@ -35,6 +35,16 @@ export default function HomePage() {
   }, [location.hash]);
   const [slide, setSlide] = useState(0);
   const touchStart = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Keep the hero moving automatically while honoring the visitor's motion preference.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const interval = window.setInterval(() => {
+      setSlide(index => (index + 1) % heroSlides.length);
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const liveProducts = useLiveProducts();
   const livePartners = useLivePartners();
 
